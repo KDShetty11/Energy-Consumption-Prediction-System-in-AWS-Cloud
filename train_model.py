@@ -2,9 +2,8 @@ import numpy as np
 import pandas as pd
 from pyspark import SparkContext, SparkConf
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col
+from pyspark.sql.functions import col, udf
 from pyspark.sql.types import IntegerType
-from pyspark.sql.functions import udf
 from pyspark.mllib.regression import LabeledPoint
 from pyspark.mllib.tree import GradientBoostedTrees
 from pyspark.mllib.evaluation import RegressionMetrics
@@ -12,71 +11,70 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
+# Spark setup
 conf = SparkConf().setAppName('EnergyConsumptionPrediction').setMaster('local')
 sc = SparkContext(conf=conf)
 spark = SparkSession(sc)
+spark.sparkContext.setLogLevel("ERROR")
 
-df = spark.read.csv("s3://energypreddatasets/data/TrainingDataset.csv", header=True, inferSchema=True)
+
+print("Loading dataset...")
+df = spark.read.csv("TrainingDataset.csv", header=True, inferSchema=True)
 for column in df.columns:
     df = df.withColumnRenamed(column, column.replace(' ', '_'))
-df.printSchema()
-print(df.count())
-print(len(df.columns))
 
+# Identify categorical columns
 categorical_columns = [col_name for col_name, dtype in df.dtypes if dtype == 'string']
+print(f"Categorical columns identified: {categorical_columns}")
 
-print(categorical_columns)
-
+# Index categorical columns
 for column in categorical_columns:
     unique_values = df.select(column).distinct().rdd.flatMap(lambda x: x).collect()
-    unique_values = sorted(unique_values) 
-    mapping_dict = {val: idx for idx, val in enumerate(unique_values)}
-    print(f"Mapping for {column}:", mapping_dict)
+    mapping_dict = {val: idx for idx, val in enumerate(sorted(unique_values))}
+    map_udf = udf(lambda val: mapping_dict.get(val, -1), IntegerType())
+    df = df.withColumn(f"{column}_indexed", map_udf(col(column)))
 
-    def map_value(val):
-        return mapping_dict.get(val, -1) 
-    
-    map_udf = udf(map_value, IntegerType())
-
-    new_col_name = column + '_indexed'
-    df = df.withColumn(new_col_name, map_udf(df[column]))
-
-df.select(*categorical_columns, *[c + '_indexed' for c in categorical_columns]).show(5)
-
+# Drop original categorical columns
 df_final = df.drop(*categorical_columns)
 
+# Cast all columns to float
 for col_name in df_final.columns:
-  df_final = df_final.withColumn(col_name, col(col_name).cast('float'))
-df_final.printSchema()
+    df_final = df_final.withColumn(col_name, col(col_name).cast('float'))
 
 energy_column = 'Energy_Consumption'
+feature_columns = [col_name for col_name in df_final.columns if col_name != energy_column]
 
-feature_columns = [col_name for col_name in df_final.columns if col_name != energy_column] 
+# Prepare data for MLlib
+def row_to_labeled_point(row):
+    features = [row[col] for col in feature_columns]
+    return LabeledPoint(row[energy_column], features)
 
-features = df_final.select(*feature_columns).rdd.map(lambda row: [float(x) for x in row]).collect()
-labels = df_final.select(energy_column).rdd.map(lambda row: float(row[0])).collect()
+data_rdd = df_final.rdd.map(row_to_labeled_point)
 
-labeled_points = [LabeledPoint(label, feature) for label, feature in zip(labels, features)]
-data_rdd = sc.parallelize(labeled_points)
-
+# Split data
 train_rdd, test_rdd = data_rdd.randomSplit([0.7, 0.3], seed=21)
 
+print("Training Gradient Boosted Trees regressor...")
 model = GradientBoostedTrees.trainRegressor(
     train_rdd,
     categoricalFeaturesInfo={}, 
-    numIterations=125,  
-    learningRate=0.2,                
-    maxDepth=2                  
+    numIterations=125,
+    learningRate=0.2,
+    maxDepth=2
 )
 
+print("Evaluating model...")
 predictions = model.predict(test_rdd.map(lambda x: x.features))
-
 predictionAndLabel = predictions.zip(test_rdd.map(lambda x: x.label))
-
 metrics = RegressionMetrics(predictionAndLabel)
 
-print("---------------Output-----------------")
-print(f"Root Mean Squared Error (RMSE): {metrics.rootMeanSquaredError}")
-print(f"R2 (coefficient of determination): {metrics.r2}")
+# Visually pleasing output
+print("\n" + "="*40)
+print("   Energy Consumption Prediction Results")
+print("="*40)
+print(f"Root Mean Squared Error (RMSE): {metrics.rootMeanSquaredError:.2f}")
+print(f"R2 (coefficient of determination): {metrics.r2:.4f}")
+print("="*40 + "\n")
 
 model.save(sc, 'regression_model')
+print("Model saved successfully.")

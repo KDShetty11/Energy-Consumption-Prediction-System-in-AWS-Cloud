@@ -2,3 +2,4 @@ labuser.pem
 labuser.ppk
 model.tar.gz
 *.gz
+*.zip

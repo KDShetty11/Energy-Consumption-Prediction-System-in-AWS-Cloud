@@ -26,6 +26,7 @@ Repository Structure :
 
 -> bootstrap.sh: Script for installing dependencies on EMR cluster nodes.
 
+-> regressionmod: Trained model(gradient boost)
 
 Prerequisites:
 

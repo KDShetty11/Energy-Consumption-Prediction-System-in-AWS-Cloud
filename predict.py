@@ -77,7 +77,7 @@ def main(test_file_path):
 
         # Load trained model
         print_progress("Loading trained model")
-        model = GradientBoostedTreesModel.load(spark.sparkContext, 'regression_model')
+        model = GradientBoostedTreesModel.load(spark.sparkContext, 'regressionmod')
 
         # Predict
         print_progress("Making predictions")

@@ -22,7 +22,6 @@ spark.sparkContext.setLogLevel("ERROR")
 print("[STATUS] Loading dataset...")
 df = spark.read.csv("TrainingDataset.csv", header=True, inferSchema=True)
 
-# Clean column names (replace spaces with underscores)
 for column in df.columns:
     df = df.withColumnRenamed(column, column.replace(' ', '_'))
 

@@ -5,7 +5,7 @@ Overview
 This repository contains the implementation of Programming Assignment 2 for CS 643: Cloud Computing. The project focuses on building an energy consumption prediction system using Apache Spark for parallel model training on an AWS EMR cluster, deploying a prediction application on a single EC2 instance, and containerizing the application using Docker. The model, based on Gradient Boosted Trees (not regression, despite folder naming), predicts energy consumption and evaluates performance using RMSE.
 Features
 
------> "Complete Walkthrough available in the repo" <-------
+[Complete Walkthrough](https://github.com/KDShetty11/Energy-Consumption-Prediction-System-in-AWS-Cloud/blob/main/ks2378_Walkthrough_EnergyConsumptionPrediction.pdf)
 
 Parallel Model Training: Utilizes Apache Spark on an AWS EMR cluster with four EC2 instances for distributed training.
 Prediction Application: Runs on a single EC2 instance, loading the trained model to make predictions on validation datasets.

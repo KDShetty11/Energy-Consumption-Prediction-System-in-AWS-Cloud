@@ -1,3 +1,5 @@
 labuser.pem
 labuser.ppk
 model.tar.gz
+regressionmod/
+*.gz

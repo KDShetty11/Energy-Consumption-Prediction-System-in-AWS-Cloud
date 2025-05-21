@@ -1,117 +1,158 @@
-Energy Consumption Prediction System
-
-Overview
-
-This repository contains the implementation of Programming Assignment 2 for CS 643: Cloud Computing. The project focuses on building an energy consumption prediction system using Apache Spark for parallel model training on an AWS EMR cluster, deploying a prediction application on a single EC2 instance, and containerizing the application using Docker. The model, based on Gradient Boosted Trees (not regression, despite folder naming), predicts energy consumption and evaluates performance using RMSE.
 
 
-[Complete Walkthrough](https://github.com/KDShetty11/Energy-Consumption-Prediction-System-in-AWS-Cloud/blob/main/ks2378_Walkthrough_EnergyConsumptionPrediction.pdf)
+# ⚡ Energy Consumption Prediction System
 
-Features:
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+**CS 643: Cloud Computing – Programming Assignment 2**
 
-Parallel Model Training: Utilizes Apache Spark on an AWS EMR cluster with four EC2 instances for distributed training.
-Prediction Application: Runs on a single EC2 instance, loading the trained model to make predictions on validation datasets.
-Docker Integration: Containerizes the prediction application for portability and deployment, hosted on Docker Hub.
-AWS Integration: Leverages AWS EMR for training and EC2 for prediction, with HDFS for distributed storage.
+> A scalable system for predicting energy consumption using Apache Spark on AWS EMR and deploying a containerized prediction service with Docker.
 
-Repository Structure :
+📄 [**Complete Walkthrough (PDF)**](https://github.com/KDShetty11/Energy-Consumption-Prediction-System-in-AWS-Cloud/blob/main/ks2378_Walkthrough_EnergyConsumptionPrediction.pdf)
+📦 [**Docker Hub Image**](https://hub.docker.com/repository/docker/kdshetty/energypred)
+📁 [**GitHub Repository**](https://github.com/KDShetty11/Energy-Consumption-Prediction-System-in-AWS-Cloud)
 
--> TrainingDataset.csv: Dataset used for training the model.
+---
 
--> ValidationDataset.csv: Dataset used for prediction and evaluation.
+## 🧠 Project Overview
 
--> train_model.py: Spark script for training the Gradient Boosted Trees model.
+This project focuses on building a scalable energy consumption prediction pipeline using Apache Spark, AWS EMR, and Docker. The machine learning model is trained using Gradient Boosted Trees (GBT), optimized for RMSE (Root Mean Squared Error) evaluation.
 
--> predict.py: Script for loading the trained model and making predictions.
+---
 
--> Dockerfile: Defines the Docker image for the prediction application.
+## 🚀 Features
 
--> bootstrap.sh: Script for installing dependencies on EMR cluster nodes.
+* **Distributed Model Training**: Spark-based training on a 4-node AWS EMR cluster.
+* **Prediction Application**: Model served via Python on a standalone EC2 instance.
+* **Containerized Deployment**: Dockerized prediction service for portability and ease of deployment.
+* **Cloud-Optimized**: Utilizes EMR for parallel computation, EC2 for serving predictions, and HDFS for storage.
 
--> regressionmod: Trained model(gradient boost)
+---
 
-Prerequisites:
+## 📁 Repository Structure
 
-AWS account with access to EMR and EC2 services.
-Docker installed for building and running the container.
-Python 3.8+ with dependencies: numpy, pandas, pyspark.
-Apache Spark 3.5.5.
-SSH client (e.g., OpenSSH, PuTTY) and SFTP tool (e.g., WinSCP).
+```
+.
+├── TrainingDataset.csv            # Training data
+├── ValidationDataset.csv          # Validation data
+├── train_model.py                 # Spark ML code to train GBT model
+├── predict.py                     # Prediction script using trained model
+├── Dockerfile                     # Docker image setup for prediction app
+├── bootstrap.sh                   # EMR bootstrap script for dependencies
+├── regressionmod/                 # Directory with trained GBT model (despite name)
+└── model.tar.gz                   # Compressed trained model for deployment
+```
 
-Setup and Usage
-1. Parallel Model Training on AWS EMR
+---
 
-Create an EMR Cluster:
-Launch an EMR cluster (emr-7.8.0, Spark 3.5.5) with 4 m5.xlarge instances.
-Use bootstrap.sh to install numpy and pandas.
+## ⚙️ Setup & Usage
+
+### 1. 🧪 Model Training on AWS EMR
+
+* **Launch EMR Cluster**:
+
+  * Version: `emr-7.8.0`
+  * Spark: `3.5.5`
+  * Instance type: 4 × `m5.xlarge`
+
+* **Setup with Bootstrap**:
+
+  ```bash
+  ./bootstrap.sh  # Installs pandas and numpy
+  ```
+
+* **Upload Files**:
+
+  * Transfer `TrainingDataset.csv` and `train_model.py` to EMR master via SFTP
+  * Copy to HDFS:
+
+    ```bash
+    hadoop fs -put TrainingDataset.csv /user/hadoop/
+    ```
+
+* **Train Model**:
+
+  ```bash
+  spark-submit train_model.py
+  ```
+
+* **Download Model**:
+
+  ```bash
+  hadoop fs -get <model_folder> && tar -czvf model.tar.gz <model_folder>
+  ```
+
+---
+
+### 2. 🔮 Prediction on EC2
+
+* **Launch EC2 Instance**:
+
+  * Type: `t2.medium`
+  * OS: Ubuntu 24.04 LTS
+  * Install: Python 3.8+, Java 8+, Spark 3.5.5
+
+* **Transfer Files**:
+
+  * Upload `predict.py`, `ValidationDataset.csv`, and `model.tar.gz`
+  * Extract model:
+
+    ```bash
+    tar -xzvf model.tar.gz
+    ```
+
+* **Run Prediction**:
+
+  ```bash
+  spark-submit predict.py ValidationDataset.csv
+  ```
+
+---
+
+### 3. 🐳 Docker Deployment
+
+* **Build Image**:
+
+  ```bash
+  sudo docker build -t energypred .
+  ```
+
+* **Run Prediction in Container**:
+
+  ```bash
+  sudo docker run -v /home/ubuntu/ValidationDataset.csv:/app/ValidationDataset.csv energypred /app/ValidationDataset.csv
+  ```
+
+* **Or Pull from Docker Hub**:
+
+  ```bash
+  docker pull kdshetty/energypred
+  ```
+
+---
+
+## ✅ Prerequisites
+
+* AWS Account with EC2 and EMR access
+* Python 3.8+
+* Docker
+* Apache Spark 3.5.5
+* SSH and SFTP tools (e.g., OpenSSH, PuTTY, WinSCP)
+
+---
+
+## 📈 Evaluation Metric
+
+* **Model Type**: Gradient Boosted Trees (GBT)
+* **Performance Metric**: RMSE (Root Mean Squared Error)
+
+> 🔍 *Note: Folder names may reference "regression," but the model is GBT (classification/regression ensemble).*
 
 
-Upload Files:
-Transfer TrainingDataset.csv and train_model.py to the EMR master node via SFTP.
-Copy files to HDFS: hadoop fs -put <file> /user/hadoop/.
 
+## 🙏 Acknowledgments
 
-Train the Model:
-Run spark-submit train_model.py to train the model.
-Download the trained model (model.tar.gz) from HDFS via SFTP.
+Developed for **CS 643: Cloud Computing**
+Thanks to NJIT faculty and AWS documentation for guidance.
 
+---
 
-
-2. Prediction on EC2 Instance
-
-Launch EC2 Instance:
-Create a t2.medium EC2 instance with Ubuntu 24.04 LTS.
-Install dependencies: Python, Java, Spark 3.5.5.
-
-
-Upload Files:
-Transfer predict.py, ValidationDataset.csv, and model.tar.gz via SFTP.
-Extract the model: tar -xzvf model.tar.gz.
-
-
-Run Prediction:
-Execute spark-submit predict.py ValidationDataset.csv to generate predictions and RMSE.
-
-
-
-3. Docker Deployment
-
-Build Docker Image:
-Install Docker on the EC2 instance.
-Build the image: sudo docker build -t energypred ..
-
-
-Run Container:
-Run the prediction: sudo docker run -v /home/ubuntu/ValidationDataset.csv:/app/ValidationDataset.csv energypred /app/ValidationDataset.csv.
-
-
-Pull from Docker Hub:
-Pull the pre-built image: docker pull kdshetty/energypred.
-
-
-
-Docker Hub:
-
-The Docker image is available at: kdshetty/energypred.
-
-Notes:
-
-Ensure sufficient storage and permissions for EMR and EC2 instances.
-Validate predictions using ValidationDataset.csv to check RMSE.
-Test the Docker container on a fresh EC2 instance for consistency.
-Folder names may reference "regression," but the model is Gradient Boosted Trees.
-
-AI Usage:
-
-ChatGPT/Copilots: Used for initial train_model.py structure and partial Dockerfile. Adapted for dataset-specific needs and optimized for RMSE.
-Custom Code: Parameter tuning in train_model.py and full predict.py implementation were written from scratch.
-
-Links:
-
-GitHub Repository: https://github.com/KDShetty11/Energy-Consumption-Prediction-System-in-AWS-Cloud
-
-Docker Hub Repository: https://hub.docker.com/repository/docker/kdshetty/energypred
-
-Acknowledgments:
-
-This project was developed as part of CS 643: Cloud Computing, with guidance from course materials and AWS documentation.

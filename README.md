@@ -3,7 +3,6 @@
 # ⚡ Energy Consumption Prediction System
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-**CS 643: Cloud Computing – Programming Assignment 2**
 
 > A scalable system for predicting energy consumption using Apache Spark on AWS EMR and deploying a containerized prediction service with Docker.
 

@@ -13,7 +13,7 @@ warnings.filterwarnings("ignore")
 
 # -------------------- Spark Setup --------------------
 print("\n[STATUS] Initializing Spark Context and Session...")
-conf = SparkConf().setAppName('EnergyConsumptionPrediction').setMaster('local')
+conf = SparkConf().setAppName('EnergyConsumptionPrediction').setMaster('local[*]')
 sc = SparkContext(conf=conf)
 spark = SparkSession(sc)
 spark.sparkContext.setLogLevel("ERROR")
